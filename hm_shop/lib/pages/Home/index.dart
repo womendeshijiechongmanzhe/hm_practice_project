@@ -17,12 +17,32 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   List<BannerItem> _bannerList = [];
   List<CategoryItem> _categoryList = [];
+  SpecialRecommend _preferenceGoods = SpecialRecommend(
+    id: "id",
+    title: "title",
+    subTypes: [],
+  );
+  SpecialRecommend _inVogueGoods = SpecialRecommend(
+    id: "id",
+    title: "title",
+    subTypes: [],
+  );
+  SpecialRecommend _oneStopGoods = SpecialRecommend(
+    id: "id",
+    title: "title",
+    subTypes: [],
+  );
+  List<GoodDetailItem> _recommendGoodsList = [];
 
   @override
   void initState() {
     super.initState();
     _getBannerList();
     _getCategoryList();
+    _getPreferenceGoodsList();
+    _getInVogueGoodsList();
+    _getOneStopGoodsList();
+    _getRecommendGoodsList();
   }
 
   //获取首页分类列表
@@ -37,13 +57,39 @@ class _HomeViewState extends State<HomeView> {
     setState(() {});
   }
 
+  //获取特惠推荐
+  void _getPreferenceGoodsList() async {
+    _preferenceGoods = await getPreferenceGoodsList();
+    setState(() {});
+  }
+
+  //获取热榜推荐
+  void _getInVogueGoodsList() async {
+    _inVogueGoods = await getInVogueGoodsList();
+    setState(() {});
+  }
+
+  //获取一站式推荐
+  void _getOneStopGoodsList() async {
+    _oneStopGoods = await getOneStopGoodsList();
+    setState(() {});
+  }
+
+  //获取更多推荐列表
+  void _getRecommendGoodsList() async {
+    _recommendGoodsList = await getRecommendGoodsList({"limit": 10});
+    setState(() {});
+  }
+
   List<Widget> _getScrollChildren() {
     return [
       SliverToBoxAdapter(child: HmSlider(bannerList: _bannerList)),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
       SliverToBoxAdapter(child: HmCategory(categoryList: _categoryList)),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
-      SliverToBoxAdapter(child: const HmSuggestion()),
+      SliverToBoxAdapter(
+        child: HmSuggestion(preferenceGoods: _preferenceGoods),
+      ),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
       SliverToBoxAdapter(
         child: Padding(
@@ -51,15 +97,19 @@ class _HomeViewState extends State<HomeView> {
           child: Flex(
             direction: Axis.horizontal,
             children: [
-              Expanded(child: HmHot()),
+              Expanded(
+                child: HmHot(reuslt: _inVogueGoods, type: "hot"),
+              ),
               SizedBox(width: 10),
-              Expanded(child: HmHot()),
+              Expanded(
+                child: HmHot(reuslt: _oneStopGoods, type: "step"),
+              ),
             ],
           ),
         ),
       ),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
-      HmMorelist(),
+      HmMorelist(recommendGoodsList: _recommendGoodsList),
     ];
   }
 

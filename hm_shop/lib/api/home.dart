@@ -18,3 +18,34 @@ Future<List<CategoryItem>> getCategoryList() async {
       .map((item) => CategoryItem.fromJson(item as Map<String, dynamic>))
       .toList();
 }
+
+//获取特惠推荐
+Future<SpecialRecommend> getPreferenceGoodsList() async {
+  return SpecialRecommend.fromJson(
+    await dioRequest.get(HttpConstants.PREFERENCE_List),
+  );
+}
+
+//热榜推荐
+Future<SpecialRecommend> getInVogueGoodsList() async {
+  return SpecialRecommend.fromJson(
+    await dioRequest.get(HttpConstants.IN_VOGUE_LIST),
+  );
+}
+
+//一站式推荐
+Future<SpecialRecommend> getOneStopGoodsList() async {
+  return SpecialRecommend.fromJson(
+    await dioRequest.get(HttpConstants.ONE_STOP_LIST),
+  );
+}
+
+//更多推荐列表
+Future<List<GoodDetailItem>> getRecommendGoodsList(
+  Map<String, dynamic> params,
+) async {
+  return ((await dioRequest.get(HttpConstants.RECOMMEND_LIST, params: params))
+          as List)
+      .map((item) => GoodDetailItem.fromJson(item as Map<String, dynamic>))
+      .toList();
+}
