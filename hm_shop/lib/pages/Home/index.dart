@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart ';
+import 'package:hm_shop/api/home.dart';
 import 'package:hm_shop/components/Home/HmCategory.dart';
 import 'package:hm_shop/components/Home/HmHot.dart';
 import 'package:hm_shop/components/Home/HmMorelist.dart';
@@ -14,26 +15,33 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  List<BannerItem> banners = [
-    BannerItem(
-      "https://yjy-teach-oss.oss-cn-beijing.aliyuncs.com/meituan/1.jpg",
-      "1",
-    ),
-    BannerItem(
-      "https://yjy-teach-oss.oss-cn-beijing.aliyuncs.com/meituan/2.png",
-      "2",
-    ),
-    BannerItem(
-      "https://yjy-teach-oss.oss-cn-beijing.aliyuncs.com/meituan/3.jpg",
-      "3",
-    ),
-  ];
+  List<BannerItem> _bannerList = [];
+  List<CategoryItem> _categoryList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _getBannerList();
+    _getCategoryList();
+  }
+
+  //获取首页分类列表
+  void _getCategoryList() async {
+    _categoryList = await getCategoryList();
+    setState(() {});
+  }
+
+  //获取首页轮播图
+  void _getBannerList() async {
+    _bannerList = await getBannerList();
+    setState(() {});
+  }
 
   List<Widget> _getScrollChildren() {
     return [
-      SliverToBoxAdapter(child: HmSlider(bannerList: banners)),
+      SliverToBoxAdapter(child: HmSlider(bannerList: _bannerList)),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
-      SliverToBoxAdapter(child: const HmCategory()),
+      SliverToBoxAdapter(child: HmCategory(categoryList: _categoryList)),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
       SliverToBoxAdapter(child: const HmSuggestion()),
       SliverToBoxAdapter(child: const SizedBox(height: 10)),
