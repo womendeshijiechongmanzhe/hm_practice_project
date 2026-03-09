@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart ';
+import 'package:get/get.dart';
 import 'package:hm_shop/api/home.dart';
+import 'package:hm_shop/api/user.dart';
 import 'package:hm_shop/components/Home/HmCategory.dart';
 import 'package:hm_shop/components/Home/HmHot.dart';
 import 'package:hm_shop/components/Home/HmMorelist.dart';
 import 'package:hm_shop/components/Home/HmSlider.dart';
 import 'package:hm_shop/components/Home/HmSuggestion.dart';
+import 'package:hm_shop/stores/TokenManager.dart';
+import 'package:hm_shop/stores/UserController.dart';
+import 'package:hm_shop/utils/ToastUtils.dart';
 import 'package:hm_shop/viewmodels/home.dart';
 
 class HomeView extends StatefulWidget {
@@ -33,51 +38,110 @@ class _HomeViewState extends State<HomeView> {
     subTypes: [],
   );
   List<GoodDetailItem> _recommendGoodsList = [];
+  ScrollController _scrollController = ScrollController();
+
+  final GlobalKey<RefreshIndicatorState> _key =
+      GlobalKey<RefreshIndicatorState>();
+
+  int _paddingTop = 0;
+
+  final UserController _userController = Get.put(UserController());
+  Future<void> _initUser() async {
+    await tokenManager.init();
+    // 初始化用户信息
+    if (tokenManager.getToken().isNotEmpty) {
+      _userController.updateUserInfo(await getUserProfileAPI());
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _getBannerList();
-    _getCategoryList();
-    _getPreferenceGoodsList();
-    _getInVogueGoodsList();
-    _getOneStopGoodsList();
-    _getRecommendGoodsList();
+
+    _initUser();
+
+    Future.microtask(() {
+      _paddingTop = 100;
+      setState(() {});
+      _key.currentState?.show();
+    });
+
+    _registerEvent();
   }
 
   //获取首页分类列表
-  void _getCategoryList() async {
+  Future<void> _getCategoryList() async {
     _categoryList = await getCategoryList();
-    setState(() {});
   }
 
   //获取首页轮播图
-  void _getBannerList() async {
+  Future<void> _getBannerList() async {
     _bannerList = await getBannerList();
-    setState(() {});
   }
 
   //获取特惠推荐
-  void _getPreferenceGoodsList() async {
+  Future<void> _getPreferenceGoodsList() async {
     _preferenceGoods = await getPreferenceGoodsList();
-    setState(() {});
   }
 
   //获取热榜推荐
-  void _getInVogueGoodsList() async {
+  Future<void> _getInVogueGoodsList() async {
     _inVogueGoods = await getInVogueGoodsList();
-    setState(() {});
   }
 
   //获取一站式推荐
-  void _getOneStopGoodsList() async {
+  Future<void> _getOneStopGoodsList() async {
     _oneStopGoods = await getOneStopGoodsList();
-    setState(() {});
   }
 
+  //页码
+  int _page = 1;
+  bool _isLoading = false; //是否正在加载中
+  bool _hasMore = true; //是否还有更多数据
+
   //获取更多推荐列表
-  void _getRecommendGoodsList() async {
-    _recommendGoodsList = await getRecommendGoodsList({"limit": 10});
+  Future<void> _getRecommendGoodsList() async {
+    //当正在加载中或没有更多数据时，直接返回
+    if (_isLoading || !_hasMore) return;
+    //设置正在加载中为true
+    _isLoading = true;
+
+    int requestLimit = _page * 8;
+    _recommendGoodsList = await getRecommendGoodsList({"limit": requestLimit});
+
+    setState(() {});
+    _isLoading = false;
+    if (_recommendGoodsList.length < requestLimit) {
+      _hasMore = false;
+      return;
+    }
+    _page++; //页码增加
+  }
+
+  //注册事件   监听滚动到底部的事件
+  void _registerEvent() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          (_scrollController.position.maxScrollExtent - 50)) {
+        _getRecommendGoodsList();
+      }
+    });
+  }
+
+  Future<void> _OnRefresh() async {
+    // 重置页码
+    _page = 1;
+    _isLoading = false;
+    _hasMore = true;
+    // 清空推荐列表
+    await _getBannerList();
+    await _getCategoryList();
+    await _getPreferenceGoodsList();
+    await _getInVogueGoodsList();
+    await _getOneStopGoodsList();
+    await _getRecommendGoodsList();
+    ToastUtils.showToast(context, "刷新成功");
+    _paddingTop = 0;
     setState(() {});
   }
 
@@ -115,6 +179,17 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(slivers: _getScrollChildren());
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: EdgeInsets.only(top: _paddingTop.toDouble()),
+      child: RefreshIndicator(
+        key: _key,
+        onRefresh: _OnRefresh,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: _getScrollChildren(),
+        ),
+      ),
+    );
   }
 }

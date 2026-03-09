@@ -1,6 +1,7 @@
 //基于Dio的二次封装工具类
 import 'package:dio/dio.dart';
 import 'package:hm_shop/constants/index.dart';
+import 'package:hm_shop/stores/TokenManager.dart';
 
 class DioRequest {
   final _dio = Dio();
@@ -19,6 +20,12 @@ class DioRequest {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          if (tokenManager.getToken().isNotEmpty) {
+            options.headers = {
+              "Authorization": "Bearer ${tokenManager.getToken()}",
+            };
+          }
+
           // 在发送请求之前做一些事情
           return handler.next(options); // 继续发送请求
         },
@@ -34,14 +41,25 @@ class DioRequest {
         },
         onError: (err, handler) {
           // 当请求失败时做一些事情
-          return handler.reject(err); // 继续处理错误
+          return handler.reject(
+            DioException(
+              requestOptions: err.requestOptions,
+              message: err.response?.data["msg"] ?? "  ",
+            ),
+          ); // 继续处理错误
         },
       ),
     );
   }
 
+  // 定义get接口
   Future<dynamic> get(String url, {Map<String, dynamic>? params}) async {
     return _handleResponse(_dio.get(url, queryParameters: params));
+  }
+
+  //定义post接口
+  Future<dynamic> post(String url, {Map<String, dynamic>? params}) async {
+    return _handleResponse(_dio.post(url, data: params));
   }
 
   //进一步处理返回结果
@@ -53,10 +71,13 @@ class DioRequest {
         //判断业务状态码是否为1
         return data["result"];
       } else {
-        throw Exception(data["msg"] ?? "请求失败");
+        throw DioException(
+          requestOptions: res.requestOptions,
+          message: data["msg"] ?? "加载数据失败",
+        );
       }
     } catch (e) {
-      throw Exception(e);
+      rethrow; //不改变原来抛出的异常
     }
   }
 }
